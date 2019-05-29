@@ -1,5 +1,5 @@
-﻿
-
+﻿START TRANSACTION;
+DELIMITER //
 CREATE OR REPLACE procedure DNS_any_query (  
   IN IN_name VARCHAR(64)
   )
@@ -21,6 +21,13 @@ BEGIN
 
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+--------------------------- Revision History ----------------------------------
+  2019-05-02     bfields     Inital working prototype
+  2019-05-28     bfields     Added reg host to TXT record
+  
+*/
 
 /* 
   now the replacement for gmysql-any-query
@@ -48,9 +55,10 @@ BEGIN
   DECLARE txtPort varchar (6);
   DECLARE txtProxy_IP varchar(20);
   DECLARE txtIPaddr varchar(20);
+  DECLARE txtRegHostName varchar(32);
 
 DECLARE txtCursor CURSOR FOR
-  SELECT regseconds, node_remotebase, udpport, proxy_ip, ipaddr FROM 
+  SELECT regseconds, node_remotebase, udpport, proxy_ip, ipaddr, reghostname FROM 
   user_Nodes JOIN user_Servers USING (Config_ID) WHERE `name` = nodeNumber ;  
 
  DECLARE srvCursor CURSOR FOR 
@@ -158,7 +166,7 @@ CREATE TEMPORARY TABLE tempRecords (
 /* Now lets process the records from the srvCursor query */
       OPEN txtCursor;
       is_TXT_loop: LOOP
-      FETCH txtCursor INTO txtRegSeconds, txtRemoteBase, txtPort, txtProxy_IP, txtIPaddr ;
+      FETCH txtCursor INTO txtRegSeconds, txtRemoteBase, txtPort, txtProxy_IP, txtIPaddr, txtRegHostName ;
 
        IF finished = 1 THEN 
   
@@ -168,7 +176,7 @@ CREATE TEMPORARY TABLE tempRecords (
        INSERT INTO tempRecords(content,proc_ttl,prio,type,temp_domain_id,disabled,temp_name,proc_auth) 
           SELECT CONCAT('"NN=', nodeNumber, '"' ,' ', '"RT=', from_unixtime(IFNULL(txtRegSeconds,0)),'"', ' ', '"RB=', 
           IFNULL(txtRemoteBase,0), '"', ' ', '"IP=', IFNULL(txtIPaddr,''), '"', ' ', '"PIP=', IFNULL(txtProxy_IP,''),'"', ' ', 
-          '"PT=', IFNULL(txtPort,''), '"'), proc_ttl, proc_prio, 'TXT', proc_domain_id, disabled, IN_name, proc_auth;
+          '"PT=', IFNULL(txtPort,''), '"',' ', '"RH=', txtRegHostName, '"'), proc_ttl, proc_prio, 'TXT', proc_domain_id, disabled, IN_name, proc_auth;
       END LOOP is_TXT_loop;
       CLOSE txtCursor;
   /* now lets set finished to 0 again so the next loop works */
@@ -185,4 +193,6 @@ CREATE TEMPORARY TABLE tempRecords (
 /* END IF; */
 SELECT content,proc_ttl,prio,type,temp_domain_id,disabled,temp_name,proc_auth FROM tempRecords;
 DROP TABLE tempRecords;
-END;
+END; //
+DELIMITER ;
+COMMIT;
