@@ -153,7 +153,7 @@ It's very important the database is clean for this to work.
 
 ## installing this
 ```
-mysql allstar --comments <DNS_id_query.sql
+mysql allstar --comments <DNS_build_records.sql
 ```
 
 Disable the mysqlprocs in the pdns.conf file
