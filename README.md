@@ -144,6 +144,20 @@ mysql allstar --comments <DNS_id_query.sql
 ## Test 
 Test dns lookups for TXT, SRV and A records
 
+# Aditional procs
+
+DNS_build_records.sql is included, this will populate the records table if you don't want to run in real time.
+This should be run via cron every 60 seconds at a mininum. 
+
+It's very important the database is clean for this to work.
+
+## installing this
+```
+mysql allstar --comments <DNS_id_query.sql
+```
+
+Disable the mysqlprocs in the pdns.conf file
+
 ## Authors
 
 * **Bryan Fields** - [bryan@bryanfields.net](mailto:bryan@bryanfields.net)
