@@ -23,6 +23,7 @@ BEGIN
 
 --------------------------- Revision History ----------------------------------
   2019-06-08      bfields     Inital prototype
+  2019-06-09      bfields     Added some handeling for stuff = ' ' in the DB :smh:
    
 */
 
@@ -93,14 +94,14 @@ BEGIN
 INSERT INTO records(domain_id, name, type, content, ttl, prio) 
   SELECT proc_domain_id, CONCAT('_iax._udp.', name, '.', specialSubDomain), 'SRV', 
     CONCAT(srvWeight, ' ', udpport, ' ', name, '.', specialSubDomain), proc_ttl, proc_prio  FROM 
-    user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL and node_remotebase =0 ;
+    user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL AND Status = 'Active' AND node_remotebase =0 ;
  /* 
   If it is a remote base
   */ 
 INSERT INTO records(domain_id, name, type, content, ttl, prio) 
   SELECT proc_domain_id, CONCAT('_iax._udp.', name, '.', specialSubDomain), 'SRV', 
     CONCAT(srvWeight, ' ', udpport, ' ', name, '.RemoteBase.', specialSubDomain), proc_ttl, proc_prio  FROM 
-    user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL and node_remotebase =1 ;
+    user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL AND Status = 'Active' AND node_remotebase =1 ;
 
 /*
   Now we do the A records
@@ -109,27 +110,27 @@ INSERT INTO records(domain_id, name, type, content, ttl, prio)
 */
 INSERT INTO records(domain_id, name, type, content, ttl, prio) 
   SELECT proc_domain_id, CONCAT(name, '.', specialSubDomain), 'A', ipaddr, proc_ttl, proc_prio  FROM 
-    user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL and node_remotebase = 0 AND proxy_ip IS NULL;
+    user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL AND Status = 'Active' AND node_remotebase = 0 AND(proxy_ip IS NULL OR proxy_ip = ' ');
 /*
    Now if a proxy but not remotebase
 */
 INSERT INTO records(domain_id, name, type, content, ttl, prio) 
   SELECT proc_domain_id, CONCAT(name, '.', specialSubDomain), 'A', proxy_ip, proc_ttl, proc_prio  FROM 
-    user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL and node_remotebase = 0 AND proxy_ip IS NOT NULL;
+    user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL AND Status = 'Active' AND node_remotebase = 0 AND (proxy_ip IS NOT NULL AND proxy_ip !='');
 /*
   Remotebase = 1
   Proxy = 0
  */
 INSERT INTO records(domain_id, name, type, content, ttl, prio) 
   SELECT proc_domain_id, CONCAT(name, '.RemoteBase.', specialSubDomain), 'A', ipaddr, proc_ttl, proc_prio  FROM 
-    user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL and node_remotebase = 1 AND proxy_ip IS NULL;
+    user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL AND Status = 'Active' AND node_remotebase = 1 AND (proxy_ip IS NULL OR proxy_ip = ' ');
 /*
   Remotebase = 1
   Proxy = 1
 */
 INSERT INTO records(domain_id, name, type, content, ttl, prio) 
   SELECT proc_domain_id, CONCAT(name, '.RemoteBase.', specialSubDomain), 'A', proxy_ip, proc_ttl, proc_prio  FROM 
-    user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL and node_remotebase = 1 AND proxy_ip IS NOT NULL;
+    user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL AND Status = 'Active' AND node_remotebase = 1 AND (proxy_ip IS NOT NULL AND proxy_ip !='');
 
 /* 
   now we do the TXT records
@@ -151,7 +152,7 @@ INSERT INTO records(domain_id, name, type, content, ttl, prio)
     proc_ttl, 
     proc_prio 
     FROM 
-  user_Nodes JOIN user_Servers USING (Config_ID) ;
+  user_Nodes JOIN user_Servers USING (Config_ID) WHERE Status = 'Active';
 
 COMMIT ;
 END ; //
