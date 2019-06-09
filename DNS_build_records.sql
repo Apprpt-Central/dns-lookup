@@ -50,13 +50,18 @@ BEGIN
   DECLARE txtProxy_IP varchar(20);
   DECLARE txtIPaddr varchar(20);
   DECLARE txtRegHostName varchar(32);
-  
+  DECLARE errno INT;
+  DECLARE err_loc INT; 
+
   DECLARE EXIT HANDLER FOR SQLEXCEPTION 
     BEGIN
-        ROLLBACK; 
-    SELECT 'holyfuckingshit';     
+      GET CURRENT DIAGNOSTICS CONDITION 1 errno = MYSQL_ERRNO;
+      SELECT errno AS MYSQL_ERROR, err_loc AS location ;
+      SELECT 'holyfuckingshit'; 
+      ROLLBACK; 
     END;
 
+START TRANSACTION WITH CONSISTENT SNAPSHOT;
     /* 
   This is not needed as it's defined by default ^ there
    SET proc_prio = '11' ;
@@ -75,7 +80,7 @@ BEGIN
   /* 
   pull the id and auth fields from the domains and records 
   */
-  START TRANSACTION;
+SET err_loc = '1' ;
    
    SELECT `id` INTO proc_domain_id FROM domains WHERE `name` = specialSubDomain;
    SELECT `auth` INTO proc_auth FROM records WHERE `type` = 'SOA' AND `domain_id` = proc_domain_id;
@@ -91,6 +96,7 @@ BEGIN
   /* 
   If not a remote base
   */ 
+SET err_loc = '2';
 INSERT INTO records(domain_id, name, type, content, ttl, prio) 
   SELECT proc_domain_id, CONCAT('_iax._udp.', name, '.', specialSubDomain), 'SRV', 
     CONCAT(srvWeight, ' ', udpport, ' ', name, '.', specialSubDomain), proc_ttl, proc_prio  FROM 
@@ -103,6 +109,7 @@ INSERT INTO records(domain_id, name, type, content, ttl, prio)
     CONCAT(srvWeight, ' ', udpport, ' ', name, '.RemoteBase.', specialSubDomain), proc_ttl, proc_prio  FROM 
     user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL AND Status = 'Active' AND node_remotebase =1 ;
 
+  SET err_loc = '10';
 /*
   Now we do the A records
   We have to do 4, one for proxy IP one for remotebase
@@ -114,6 +121,7 @@ INSERT INTO records(domain_id, name, type, content, ttl, prio)
 /*
    Now if a proxy but not remotebase
 */
+ SET err_loc = '11';
 INSERT INTO records(domain_id, name, type, content, ttl, prio) 
   SELECT proc_domain_id, CONCAT(name, '.', specialSubDomain), 'A', proxy_ip, proc_ttl, proc_prio  FROM 
     user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL AND Status = 'Active' AND node_remotebase = 0 AND (proxy_ip IS NOT NULL AND proxy_ip !='');
@@ -121,6 +129,7 @@ INSERT INTO records(domain_id, name, type, content, ttl, prio)
   Remotebase = 1
   Proxy = 0
  */
+ SET err_loc = '12';
 INSERT INTO records(domain_id, name, type, content, ttl, prio) 
   SELECT proc_domain_id, CONCAT(name, '.RemoteBase.', specialSubDomain), 'A', ipaddr, proc_ttl, proc_prio  FROM 
     user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL AND Status = 'Active' AND node_remotebase = 1 AND (proxy_ip IS NULL OR proxy_ip = ' ');
@@ -128,10 +137,12 @@ INSERT INTO records(domain_id, name, type, content, ttl, prio)
   Remotebase = 1
   Proxy = 1
 */
+ SET err_loc = '13';
 INSERT INTO records(domain_id, name, type, content, ttl, prio) 
   SELECT proc_domain_id, CONCAT(name, '.RemoteBase.', specialSubDomain), 'A', proxy_ip, proc_ttl, proc_prio  FROM 
     user_Nodes JOIN user_Servers USING (Config_ID) WHERE ipaddr IS NOT NULL AND Status = 'Active' AND node_remotebase = 1 AND (proxy_ip IS NOT NULL AND proxy_ip !='');
 
+  SET err_loc = '20';
 /* 
   now we do the TXT records
   TXT records only exist under *.nodes, the remotebase doesn't have the records 
@@ -153,10 +164,12 @@ INSERT INTO records(domain_id, name, type, content, ttl, prio)
     proc_prio 
     FROM 
   user_Nodes JOIN user_Servers USING (Config_ID) WHERE Status = 'Active';
+SET err_loc = '30';
 
-COMMIT ;
+COMMIT WORK ;
+SET err_loc = '40';
 END ; //
 
 DELIMITER ;
-COMMIT;  
+COMMIT WORK;  
   
