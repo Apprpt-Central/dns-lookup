@@ -2,7 +2,7 @@
 DELIMITER //
 DROP TRIGGER IF EXISTS pdns //
 CREATE TRIGGER pdns AFTER UPDATE ON user_Nodes FOR EACH ROW 
-  BEGIN
+trig_label:BEGIN
    /* 
     This will build SRV,TXT, and A records into the 'records' table for power DNS
     for AllStarLink for any update on the user_Nodes row
@@ -26,6 +26,7 @@ CREATE TRIGGER pdns AFTER UPDATE ON user_Nodes FOR EACH ROW
   2019-07-05      bfields     Inital prototype
   2019-07-08      bfields     A and TXT records working
   2019-07-09      bfields     Optomization and speedup, well under .010 seconds
+  2019-07-12      bfields     Fixed the unix_time '' issue with schema change
   
  Note we need the following unique index on the records table.  We use the ttl for identifying generated records vs. static.  
   This means, never use the proc ttl here for static records or it will cause issues.   
@@ -41,7 +42,6 @@ ALTER TABLE records ADD CONSTRAINT nameTypeTTL UNIQUE KEY (name, type, ttl);
   proc_auth should be the default state of auth
   */
   
-
   DECLARE procPort varchar(6);
   DECLARE procProxy_IP varchar(20);
   DECLARE srvWeight int DEFAULT 10;
@@ -50,10 +50,10 @@ ALTER TABLE records ADD CONSTRAINT nameTypeTTL UNIQUE KEY (name, type, ttl);
   DECLARE proc_prio INT DEFAULT 11;
   DECLARE specialSubDomain varchar(64) DEFAULT 'nodes.allstarlink.org';
 
-
-
-
-
+/* exit the code if status is not 'Active' */
+IF NEW.status != 'Active' THEN 
+  LEAVE trig_label;
+END IF;
 
 /* Select the stuff not in the user_Nodes table (proxy and port) from user_Servers */
 SELECT udpport, proxy_ip INTO procPort, procProxy_IP from user_Servers where config_id = NEW.Config_ID;
@@ -61,10 +61,8 @@ SELECT udpport, proxy_ip INTO procPort, procProxy_IP from user_Servers where con
 /* Not needed, as they are set up in the DECLARE's and this is a _HUGE_ speedup
   SELECT  domains.id INTO proc_domain_id FROM domains 
     JOIN records ON domains.id = records.domain_id WHERE records.type = 'SOA' AND domains.name = specialSubDomain;
-*/
- 
 
-/* Now Do the SRV records, based on what remoteBase is */ 
+  Now Do the SRV records, based on what remoteBase is */ 
 
 IF NEW.node_remotebase = 1 THEN
   INSERT INTO records(domain_id, name, type, content, ttl, prio) 
@@ -118,22 +116,22 @@ END IF;
   TXT records only exist under *.nodes, the remotebase doesn't have the records 
   NOTE: regseconds must be NULL or 0, if it's ' ' it's not going to work
   update user_Nodes set regseconds = '0'  where regseconds = ' ';
-  */
+*/  
 INSERT INTO records(domain_id, name, type, content, ttl, prio) 
   SELECT  proc_domain_id, 
     CONCAT(NEW.name, '.', specialSubDomain), 
    'TXT', 
     CONCAT('"NN=', NEW.name, '"' ,' ', 
-           '"RT=', from_unixtime(IFNULL(NEW.regseconds,'0')),'"', ' ',
+           '"RT=', from_unixtime(NEW.regseconds),'"', ' ',
            '"RB=', IFNULL(NEW.node_remotebase,'0'), '"', ' ', 
            '"IP=', IFNULL(NEW.ipaddr,'0'), '"', ' ', 
            '"PIP=', IFNULL(procProxy_IP,'0'),'"', ' ', 
            '"PT=', IFNULL(procPort,'0'), '"',' ', 
            '"RH=', IFNULL(NEW.reghostname,'0'), '"'), 
     proc_ttl, 
-    proc_prio 
-    ON DUPLICATE KEY UPDATE content = CONCAT('"NN=', NEW.name, '"' ,' ', 
-           '"RT=', from_unixtime(IFNULL(NEW.regseconds,'0')),'"', ' ',
+    proc_prio  
+   ON DUPLICATE KEY UPDATE content = CONCAT('"NN=', NEW.name, '"' ,' ', 
+           '"RT=', from_unixtime(NEW.regseconds),'"', ' ',
            '"RB=', IFNULL(NEW.node_remotebase,'0'), '"', ' ', 
            '"IP=', IFNULL(NEW.ipaddr,'0'), '"', ' ', 
            '"PIP=', IFNULL(procProxy_IP,'0'),'"', ' ', 

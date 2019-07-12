@@ -1,6 +1,6 @@
 # DNS Lookup
 
-MariaDB SQL Stored Procedures for SRV based DNS lookup using PowerDNS 4.2
+MariaDB SQL Trigger for SRV based DNS lookup using PowerDNS 4.2
 This provides access to the AllStar Link database via DNS.
 
 ## Overview 
@@ -9,7 +9,11 @@ This supports the following records under the subdomain of nodes.allstarlink.org
 * TXT
 * A
 
-This is based on the AllStar Link DNS lookup standard provided on the wiki.  
+This is based on the AllStar Link DNS lookup standard provided on the wiki. 
+
+On any update to users_Nodes, the trigger is run and it updates the records in the records table.  This has negligible additional load on the database as the trigger executes in .005 seconds or less.  
+
+There is no provision to remove records from the records table when removing an entry in the users_Nodes table.  This has to be done manually.
 
 ## Example Queries 
 
@@ -90,7 +94,12 @@ The records returned are:
 * RH - Registration server hostname that processed the registration request
 
 ## Notes
-In the event these records are not present the queries fallback on the normal pdns table layout.  This means static records can be defined in the normal pdns fields, and the pdnsutil command can provision/test these if needed.  This does open up the possibility that multiple A/SRV/TXT records can be defined, and the SQL/pdns will handle it, as it's valid.  Asterisk is expecting to see a single SRV and A record returned to it for a node number via DNS, so this may break asterisk if a static record is made and then a dynamic generated record is returned.
+
+The proc_domain_id must match the ID number of the specialSubDomain in the domains table.  This used to be read on the fly, but statically defining this yielded a 10000% speedup.  This should never change in production.  If it does, you've messed up big time.
+
+Static records can be defined in the normal records fields, and the pdnsutil command can provision/test these if needed.  This does open up the possibility that multiple A/SRV/TXT records can be defined, and the SQL/pdns will handle it, as it's valid.  Asterisk is expecting to see a single SRV and A record returned to it for a node number via DNS, so this may break asterisk if a static record is made and then a dynamic generated record is returned.
+
+The TTL must be different than proc_ttl (default 30) for any manually created records.  
 
 The records returned here are not aged out after 10 minuted like the nodeslist.  There is little point to this, as freshness can be queried via the TXT record.  In any event if a server is not updating it's registration, connections to and from it will fail, just as with the nodelist. 
 
@@ -120,11 +129,6 @@ gmysql-user=root
 gmysql-password=ButtPlugs!!
 gmysql-dnssec=yes
 # gmysql-socket=
-#custom queries defined 
-gmysql-basic-query=CALL DNS_basic_query(?, ?)
-gmysql-id-query = CALL  DNS_id_query(?, ?, ?)
-gmysql-any-id-query = CALL DNS_any_id_query(?, ?)
-gmysql-any-query = CALL DNS_any_query(?)
 
 ```
 
@@ -134,12 +138,15 @@ Now insert the tables into the allstar database if they don't exist:
 mysql allstar --comments <pdns-42-schema.sql 
 ```
 
+We need a custom index on the records table 
+
+```
+ALTER TABLE records ADD CONSTRAINT nameTypeTTL UNIQUE KEY (name, type, ttl);
+```
+
 Now each stored procedure:
 ```
-mysql allstar --comments <DNS_basic.sql
-mysql allstar --comments <DNS_any_query.sql
-mysql allstar --comments <DNS_any_id_query.sql
-mysql allstar --comments <DNS_id_query.sql
+mysql allstar --comments <DNS_Trigger.sql
 ```
 ## Test 
 Test dns lookups for TXT, SRV and A records
@@ -147,9 +154,6 @@ Test dns lookups for TXT, SRV and A records
 # Aditional procs
 
 DNS_build_records.sql is included, this will populate the records table if you don't want to run in real time.
-This should be run via cron every 60 seconds at a mininum. 
-
-It's very important the database is clean for this to work.
 
 ## installing this
 ```
@@ -157,6 +161,9 @@ mysql allstar --comments <DNS_build_records.sql
 ```
 
 Disable the mysqlprocs in the pdns.conf file
+
+# Old files
+The original process was running a sproc for every lookup.  This worked but was way too slow.  These are in the old directory.
 
 ## Authors
 
