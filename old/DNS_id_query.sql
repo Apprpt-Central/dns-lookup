@@ -33,8 +33,8 @@ SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records
   
 */
  /* 
-  Declare shit here before anything else
-  Someone commented at my use of 'shit'.  Some people are cunts 
+  Declare stuff here before anything else
+  
  */
   DECLARE remoteBase VARCHAR(4);
   DECLARE udp VARCHAR(6);
