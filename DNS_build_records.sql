@@ -27,7 +27,7 @@ BEGIN
    
 */
 
-/*  Declare shit here before anything else */
+/*  Declare stuff here before anything else */
 
 
   DECLARE remoteBase VARCHAR(4);
