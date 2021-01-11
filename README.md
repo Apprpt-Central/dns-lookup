@@ -5,9 +5,9 @@ This provides access to the AllStar Link database via DNS.
 
 ## Requirements
 
-This code requries that you already have Asterisk Realtime setup and are familiar with storing usernames and passwords for IAX2 clients in a database.
+This code requires that you already have a working Asterisk Realtime setup and are familiar with storing usernames and passwords for IAX2 clients in a database.
 
-This code has been used with Asterisk 13 as it was the version of Asterisk that powered ASL Registration.  The code in this repository should work with any version of Asterisk Realtime that uses the same database format as Asterisk 13.
+This code has been successfully used with Asterisk 13 as it was the version of Asterisk that powered ASL Registration servers.  The code in this repository should work with any version of Asterisk Realtime that uses the same database format as Asterisk 13.
 
 Note: Information on setting up Asterisk Realtime is beyond the scope of this document.  You can find information regarding Asterisk Realtime at https://wiki.asterisk.org/wiki/display/AST/Realtime+Database+Configuration
 
