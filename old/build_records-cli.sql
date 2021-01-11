@@ -14,7 +14,7 @@ CREATE TEMPORARY TABLE frecords (
   proc_auth        TINYINT(1) DEFAULT 1
   );
 
-/*  Declare shit here before anything else */
+/*  Declare stuff here before anything else */
   
    SET @proc_prio = '11' ;
    SET @disabled = '0' ;
