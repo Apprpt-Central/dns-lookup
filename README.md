@@ -3,6 +3,14 @@
 MariaDB SQL Trigger for SRV based DNS lookup using PowerDNS 4.2
 This provides access to the AllStar Link database via DNS.
 
+## Requirements
+
+This code requries that you already have Asterisk Realtime setup and are familiar with storing usernames and passwords for IAX2 clients in a database.
+
+This code has been used with Asterisk 13 as it was the version of Asterisk that powered ASL Registration.  The code in this repository should work with any version of Asterisk Realtime that uses the same database format as Asterisk 13.
+
+Note: Information on setting up Asterisk Realtime is beyond the scope of this document.  You can find information regarding Asterisk Realtime at https://wiki.asterisk.org/wiki/display/AST/Realtime+Database+Configuration
+
 ## Overview 
 This supports the following records under the subdomain of nodes.allstarlink.org:
 * SRV
@@ -124,9 +132,9 @@ launch+=gmysql
 # gmysql parameters
 gmysql-host=127.0.0.1
 gmysql-port=3306
-gmysql-dbname=allstar
-gmysql-user=root
-gmysql-password=ButtPlugs!!
+gmysql-dbname=<your realtime asterisk database name>
+gmysql-user=<username here>
+gmysql-password=<password here>
 gmysql-dnssec=yes
 # gmysql-socket=
 
@@ -175,7 +183,7 @@ This project is licensed under the GNU Affero General Public License v3.0 - see 
 
 ## Acknowledgments
 
-* Tom for his help with the SRV records (who knew they existed!)
-* Stacy for his help with the internals of asterisk
+* Tom Hayward (KD7LXL) for his help with the SRV records (who knew they existed!)
+* Stacy Olivas (KG7QIN) for his help with the internals of asterisk
 
 
