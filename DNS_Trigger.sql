@@ -33,7 +33,7 @@ trig_label:BEGIN
 ALTER TABLE records ADD CONSTRAINT nameTypeTTL UNIQUE KEY (name, type, ttl);    
 */
 
-/*  Declare shit here before anything else */
+/*  Declare stuff here before anything else */
 /*
   proc_ttl here is used as a special key.  We first delete anything in the db with this ttl
   if you want to make static records in the DB they must use a different TTL than 30
